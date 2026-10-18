@@ -1,0 +1,4 @@
+# dsh-restart-dock bundle patch: 把插件行插进 profile 名单。
+- insert:
+    - id: plugin-restart-dock
+      name: 'dsh-restart-dock'
