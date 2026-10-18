@@ -29,6 +29,7 @@ window.__ModuleLoader__.load({
     const EDGE = 48;      // 离边多近算「贴边」
     const EDGE_GAP = 6;   // 贴边后留的缝
     const MIN_DRAG = 6;   // 超过这么多像素才算拖动，不是点击
+    const HOLD_MS = 320;  // 按住这么久才算「开始拖」——防鼠标一抖就把小框粘走
 
     const ZH = {
       restart: '重启',
@@ -400,14 +401,29 @@ window.__ModuleLoader__.load({
         const el = wrapRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        drag.current = {
+        const d = {
           id: event.pointerId,
           sx: event.clientX,
           sy: event.clientY,
           bl: rect.left,
           bt: rect.top,
           moved: false,
+          holdReady: false,
+          holdTimer: null,
         };
+        // **必须长按才进入拖动**。原来只要鼠标移动超过 6px 就开始拖，
+        // 结果「没打算拖、只是手一抖」小框就粘在鼠标上跟着跑（用户实测反馈）。
+        // 这里按住 320ms 后才允许拖；期间松开或不移动都当普通点击。
+        d.holdTimer = setTimeout(() => {
+          if (drag.current !== d) return;
+          d.holdReady = true;
+          setDragging(true);   // cursor 变 grabbing，给个「现在可以拖了」的信号
+          // **长按就绪就立刻捕获指针**：小框只有 145px 宽，用户一拖就出界；
+          // 不捕获的话后续 pointermove 根本收不到，拖动会「按了半天纹丝不动」
+          // （2026-10-18 实测：用 CDP 瞬移鼠标时第一个 move 就已经在框外）。
+          try { el.setPointerCapture(d.id); } catch { /* 忽略 */ }
+        }, HOLD_MS);
+        drag.current = d;
         // **不要在这里 setPointerCapture**。实测（2026-10-18）它会把后续 pointer 事件
         // 全部捕获到这个元素上，导致「真实鼠标点击」的 click 根本不触发 ——
         // 表现就是小框渲染正常、elementFromPoint 也命中按钮，但怎么点都没反应，
@@ -417,12 +433,12 @@ window.__ModuleLoader__.load({
       const onPointerMove = useCallback((event) => {
         const d = drag.current;
         if (!d || d.id !== event.pointerId) return;
+        // 没长按够时间 → 这不是拖动，忽略移动
+        if (!d.holdReady) return;
         const dx = event.clientX - d.sx;
         const dy = event.clientY - d.sy;
-        if (!d.moved && Math.abs(dx) + Math.abs(dy) < MIN_DRAG) return;
         if (!d.moved) {
           d.moved = true;
-          setDragging(true);
           // 确认是在拖了才捕获指针 —— 这样普通点击不会被捕获吞掉。
           try { wrapRef.current?.setPointerCapture(d.id); } catch { /* 老浏览器忽略 */ }
         }
@@ -439,10 +455,13 @@ window.__ModuleLoader__.load({
       const finishDrag = useCallback((event) => {
         const d = drag.current;
         if (!d) return;
+        if (d.holdTimer) clearTimeout(d.holdTimer);
         drag.current = null;
         try { wrapRef.current?.releasePointerCapture(d.id); } catch { /* 忽略 */ }
         if (!d.moved) {
+          // 短按、或者长按了但没移动 —— 都按点击处理，把状态复原
           setDragBox(null);
+          setDragging(false);
           return;
         }
         setDragging(false);
