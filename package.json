@@ -1,7 +1,7 @@
 {
   "name": "dsh-restart-dock",
-  "version": "0.1.0",
-  "description": "A small dock floating in the DSH Web UI: one click restarts the DSH host, one click reloads the page. Built for the ordinary loop of installing a plugin, editing client code, or applying a config change - no more closing the window and hunting for the shortcut. Restart is confirmed twice and refused from any cross-origin page.",
+  "version": "0.1.1",
+  "description": "A small dock floating in the DSH Web UI: one click restarts the DSH host, one click reloads the page. Restart asks first (now / 30s / 60s / 2min / cancel), the dock drags to any edge only after a 320ms hold and stays anchored when the window resizes, and a particle wave plays before the page reloads. Refresh checks the plugin bundle first and refuses when it is still rebuilding or broken, so a reload can never brick the app.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
