@@ -1,0 +1,83 @@
+{
+  "name": "dsh-restart-dock",
+  "version": "0.1.0",
+  "description": "A small dock floating in the DSH Web UI: one click restarts the DSH host, one click reloads the page. Built for the ordinary loop of installing a plugin, editing client code, or applying a config change - no more closing the window and hunting for the shortcut. Restart is confirmed twice and refused from any cross-origin page.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "restart",
+    "reload",
+    "restart-button",
+    "control-dock",
+    "host-process",
+    "plugin-reload",
+    "developer-experience",
+    "windows",
+    "重启",
+    "刷新",
+    "控制坞"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node test/smoke.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7gzgn/dsh-restart-dock.git"
+  },
+  "homepage": "https://github.com/7gzgn/dsh-restart-dock#readme",
+  "bugs": {
+    "url": "https://github.com/7gzgn/dsh-restart-dock/issues"
+  },
+  "dsh": {
+    "compatibility": {
+      "dshReleases": {
+        "0.2.1-rc.2": "compatible"
+      }
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.4 <5.0.0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.0-rc.2 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-client-ui-slots": {
+      "optional": true
+    }
+  }
+}
