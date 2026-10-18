@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Restart Dock">
+  <defs>
+    <linearGradient id="rd-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f81f7"/>
+      <stop offset="1" stop-color="#1f6feb"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#rd-g)"/>
+  <path d="M32 14v17" fill="none" stroke="#ffffff" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M21 21.5a16 16 0 1 0 22 0" fill="none" stroke="#ffffff" stroke-width="5.2" stroke-linecap="round"/>
+  <circle cx="32" cy="33" r="4.2" fill="#ffffff"/>
+</svg>
