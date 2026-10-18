@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Restart Dock",
+    "description": "A small dock in the bottom-right corner: one click restarts the DSH host (a few seconds offline), one click reloads the current page. No more closing the window to find the shortcut after changing a plugin, client code, or config. Restart needs a second click to confirm, and cross-origin pages are refused."
+  }
+}
