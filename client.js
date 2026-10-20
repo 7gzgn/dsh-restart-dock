@@ -232,6 +232,7 @@ window.__ModuleLoader__.load({
       const startedAt = useRef(0);
       const alive = useRef(true);
       const drag = useRef(null);       // 进行中的拖动
+      const finishDragRef = useRef(null); // 供长按后的 window 监听调用
       const lastDragAt = useRef(0);    // 最近一次拖动结束的时刻（用来吞掉误触的 click）
 
       useEffect(() => {
@@ -407,6 +408,9 @@ window.__ModuleLoader__.load({
           sy: event.clientY,
           bl: rect.left,
           bt: rect.top,
+          w: rect.width,
+          h: rect.height,
+          box: null,
           moved: false,
           holdReady: false,
           holdTimer: null,
@@ -418,10 +422,33 @@ window.__ModuleLoader__.load({
           if (drag.current !== d) return;
           d.holdReady = true;
           setDragging(true);   // cursor 变 grabbing，给个「现在可以拖了」的信号
-          // **长按就绪就立刻捕获指针**：小框只有 145px 宽，用户一拖就出界；
-          // 不捕获的话后续 pointermove 根本收不到，拖动会「按了半天纹丝不动」
-          // （2026-10-18 实测：用 CDP 瞬移鼠标时第一个 move 就已经在框外）。
-          try { el.setPointerCapture(d.id); } catch { /* 忽略 */ }
+          // 用 window 监听代替 setPointerCapture：capture 在 Electron 里事件送达发黏，
+          // 拖动明显不跟手（2026-10-20 对比：另一插件用 window mousemove 就跟得紧）。
+          const winMove = (ev) => {
+            if (drag.current !== d || !d.holdReady) return;
+            d.moved = true;
+            const box = {
+              left: clamp(d.bl + (ev.clientX - d.sx), 4, ((window.innerWidth || 1280) - d.w - 4)),
+              top: clamp(d.bt + (ev.clientY - d.sy), 4, ((window.innerHeight || 800) - d.h - 4)),
+            };
+            d.box = box;
+            // 拖动期间直接写样式：不走 React state，避免每帧重渲染整块面板。
+            const el2 = wrapRef.current;
+            if (el2) {
+              el2.style.left = box.left + 'px';
+              el2.style.top = box.top + 'px';
+            }
+            ev.preventDefault();
+          };
+          const winUp = (ev) => {
+            window.removeEventListener('pointermove', winMove);
+            window.removeEventListener('pointerup', winUp);
+            window.removeEventListener('pointercancel', winUp);
+            if (finishDragRef.current) finishDragRef.current(ev);
+          };
+          window.addEventListener('pointermove', winMove);
+          window.addEventListener('pointerup', winUp);
+          window.addEventListener('pointercancel', winUp);
         }, HOLD_MS);
         drag.current = d;
         // **不要在这里 setPointerCapture**。实测（2026-10-18）它会把后续 pointer 事件
@@ -437,11 +464,7 @@ window.__ModuleLoader__.load({
         if (!d.holdReady) return;
         const dx = event.clientX - d.sx;
         const dy = event.clientY - d.sy;
-        if (!d.moved) {
-          d.moved = true;
-          // 确认是在拖了才捕获指针 —— 这样普通点击不会被捕获吞掉。
-          try { wrapRef.current?.setPointerCapture(d.id); } catch { /* 老浏览器忽略 */ }
-        }
+        if (!d.moved) d.moved = true;
         const el = wrapRef.current;
         const w = el ? el.offsetWidth : 150;
         const ht = el ? el.offsetHeight : 44;
@@ -464,22 +487,20 @@ window.__ModuleLoader__.load({
           setDragging(false);
           return;
         }
-        setDragging(false);
         lastDragAt.current = Date.now();
         // 松手：把拖到的地方换算成「贴哪条边 + 离边多远」。
-        const el = wrapRef.current;
-        const w = el ? el.offsetWidth : 150;
-        const ht = el ? el.offsetHeight : 44;
-        setDragBox((box) => {
-          if (box) {
-            const next = toAnchor(box.left, box.top, w, ht);
-            writePos(next);
-            setPos(next);
-          }
-          return null;
-        });
+        const box = d.box;
+        if (box) {
+          const next = toAnchor(box.left, box.top, d.w || 150, d.h || 44);
+          writePos(next);
+          setPos(next);
+        }
+        setDragBox(null);
+        setDragging(false);
         if (event && typeof event.preventDefault === 'function') event.preventDefault();
       }, []);
+
+      finishDragRef.current = finishDrag;
 
       /** 拖动刚结束的那一下点击要吞掉，否则一拖就会顺手触发按钮。 */
       const swallowAfterDrag = useCallback(() => Date.now() - lastDragAt.current < 180, []);
